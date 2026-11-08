@@ -11,10 +11,10 @@ jobs:
   copy:
     runs-on: ubuntu-latest
     steps:
-      - uses: docker/setup-buildx-action@v3
-      - run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - run: |
-          docker buildx imagetools create \
-            --tag ghcr.io/secure-rads/nsjail-docker:latest \
-            ghcr.io/prdai/nsjail-docker@sha256:6c500a51d3ccadf2fb8fb312c2738aa1a6ba867a3982c0d206478c6a7edec35b
-      - run: docker buildx imagetools inspect ghcr.io/secure-rads/nsjail-docker:latest --format '{{json .Manifest}}'
+      - name: Copy the pinned manifest list
+        run: |
+          docker run --rm quay.io/skopeo/stable copy --all \
+            --src-no-creds \
+            --dest-creds "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            docker://ghcr.io/prdai/nsjail-docker@sha256:6c500a51d3ccadf2fb8fb312c2738aa1a6ba867a3982c0d206478c6a7edec35b \
+            docker://ghcr.io/secure-rads/nsjail-docker:latest
