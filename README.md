@@ -8,7 +8,7 @@ Google ships nsjail as source only, no binary releases - this compiles it
 from source and publishes the result so downstream projects can just pull
 the image instead of compiling nsjail themselves.
 
-Rebuilds weekly via GitHub Actions (tracks upstream `master`), plus on every
+Rebuilds hourly via GitHub Actions (tracks upstream `master`), plus on every
 push to `main` and manually via workflow_dispatch. Multi-arch: amd64 + arm64.
 
 ## Using this in your own project
