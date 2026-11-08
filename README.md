@@ -1,23 +1,48 @@
 # nsjail-docker
 
-Container image used by the Secure-RADS registry service to run the Data Controller app inside the enclave.
+Prebuilt [nsjail](https://github.com/google/nsjail) image, published to:
 
-This repository holds the packaging metadata only. The image is published to GitHub Container Registry:
+- `ghcr.io/secure-rads/nsjail-docker:latest`
 
+Google ships nsjail as source only, no binary releases - this compiles it
+from source and publishes the result so downstream projects can just pull
+the image instead of compiling nsjail themselves.
+
+Rebuilds weekly via GitHub Actions (tracks upstream `master`), plus on every
+push to `main` and manually via workflow_dispatch. Multi-arch: amd64 + arm64.
+
+## Using this in your own project
+
+The image's final stage is nsjail's *entire* runtime - the compiled binary
+plus every shared library it's dynamically linked against (libprotobuf,
+libnl) - not just the bare binary. Pulling only the binary risks missing a
+transitive dependency; pulling the whole rootfs guarantees it works.
+
+In a multi-stage Dockerfile, pull the whole thing in as a build stage and
+copy out of it:
+
+```dockerfile
+FROM ghcr.io/secure-rads/nsjail-docker:latest AS nsjail
+
+FROM your-base-image
+COPY --from=nsjail / /opt/assets/nsjail-runtime/
+# /opt/assets/nsjail-runtime/bin/nsjail is now available, along with
+# every library it needs to actually run.
 ```
-ghcr.io/secure-rads/nsjail-docker
+
+If your final image's base already has compatible libprotobuf/libnl
+versions, you can instead copy just the binary:
+
+```dockerfile
+COPY --from=nsjail /bin/nsjail /usr/local/bin/nsjail
 ```
 
-The build is based on the upstream nsjail project and the unofficial weekly build previously published from `prdai/nsjail-docker`, which has been archived. The registry service pins the image by digest:
-
-```
-FROM ghcr.io/secure-rads/nsjail-docker@sha256:6c500a51d3ccadf2fb8fb312c2738aa1a6ba867a3982c0d206478c6a7edec35b
-```
-
-## Publishing
-
-Run the `publish` workflow manually. It copies the pinned upstream manifest list into this repository's package, preserving every platform. Change the source digest and tag in the workflow when a new build is needed.
+but the whole-rootfs approach above is the safer default unless you've
+specifically verified your base's library versions match.
 
 ## License
 
-The image repackages nsjail, licensed under Apache-2.0. The packaging files here carry no separate license.
+This repository is [Apache License 2.0](LICENSE) - the same license as
+nsjail itself, since the published image redistributes nsjail's compiled
+binary. Only the `Dockerfile` and CI workflow in this repo are original
+work; nsjail itself is Google's, unmodified.
